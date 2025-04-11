@@ -296,58 +296,211 @@ class MedicalConsultationApp:
                 
         return transcribed_text, healthcare_response, output_audio_path
         
-    def create_interface(self) -> gr.Interface:
+    def create_interface(self) -> gr.Blocks:
         """
         Create the Gradio interface for the application.
         
         Returns:
             Configured Gradio interface
         """
-        return gr.Interface(
-            fn=self.process_consultation,
-            inputs=[
-                gr.Audio(
-                    sources=["microphone"], 
-                    type="filepath", 
-                    label="Describe Your Symptoms (Optional)"
-                ),
-                gr.Image(
-                    type="filepath", 
-                    label="Upload Image of Affected Area"
-                )
-            ],
-            outputs=[
-                gr.Textbox(label="Your Description"),
-                gr.Textbox(label="Healthcare Assessment"),
-                gr.Audio(label="Audio Assessment", type="filepath")
-            ],
-            title="Professional Healthcare Assessment",
-            description="""
-            This tool provides a preliminary assessment based on visual information and symptom description.
-            Note: This is not a substitute for professional medical care. Always consult with a qualified 
-            healthcare provider for proper diagnosis and treatment.
-            """,
-            article="""
-            ### How to Use This Tool
-            1. **Describe your symptoms** (optional) by recording audio
-            2. **Upload a clear image** of the affected area
-            3. **Review the assessment** provided by our AI healthcare assistant
-            
-            ### Important Notice
-            The information provided is for educational purposes only and is not intended as medical advice, 
-            diagnosis, or treatment. Always seek the advice of your physician or other qualified health 
-            provider with any questions regarding a medical condition.
-            """,
-            theme="default",
-            flagging_mode="never"
+        # Define a medical theme with blue tones
+        theme = gr.themes.Soft(
+            primary_hue="blue",
+            secondary_hue="blue",
+            neutral_hue="slate"
         )
+        
+        with gr.Blocks(theme=theme) as interface:
+            # CSS for custom styling
+            gr.Markdown("""
+            <style>
+            .container {
+                max-width: 1000px;
+                margin: 0 auto;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+            
+            .header {
+                text-align: center;
+                margin-bottom: 1rem;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                background: linear-gradient(90deg, #e0f2fe, #bfdbfe);
+            }
+            
+            .header h1 {
+                color: #1e40af;
+                margin: 0;
+                font-size: 2rem;
+            }
+            
+            .header p {
+                color: #475569;
+                margin: 0.5rem 0 0 0;
+            }
+            
+            .input-container, .output-container {
+                border: 1px solid #e2e8f0;
+                border-radius: 0.5rem;
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+                background-color: white;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            
+            .instruction-box {
+                background-color: #f0f9ff;
+                border-left: 4px solid #3b82f6;
+                padding: 1rem;
+                border-radius: 0.25rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .disclaimer {
+                background-color: #fff1f2;
+                border-left: 4px solid #e11d48;
+                padding: 1rem;
+                border-radius: 0.25rem;
+                margin-top: 1.5rem;
+                font-size: 0.9rem;
+            }
+            
+            .step-header {
+                color: #1e40af;
+                border-bottom: 1px solid #e2e8f0;
+                padding-bottom: 0.75rem;
+                margin-top: 0;
+                margin-bottom: 1.25rem;
+                font-weight: 600;
+                font-size: 1.25rem;
+            }
+            
+            .footer {
+                text-align: center;
+                color: #64748b;
+                font-size: 0.8rem;
+                margin-top: 2rem;
+            }
+            </style>
+            """)
+            
+            # Header section
+            gr.HTML("""
+            <div class="container">
+                <div class="header">
+                    <h1>MediScan: AI-Powered Healthcare Assessment</h1>
+                    <p>Get a preliminary assessment of skin conditions and symptoms through advanced AI analysis</p>
+                </div>
+            </div>
+            """)
+            
+            with gr.Row(equal_height=True):
+                # Left column - Input section
+                with gr.Column():
+                    gr.HTML("""
+                    <div class="input-container">
+                        <h2 class="step-header">Step 1: Provide Information</h2>
+                        <div class="instruction-box">
+                            <h3 style="margin-top: 0; color: #1e40af;">How to Use This Tool</h3>
+                            <ol>
+                                <li>Upload a clear image of the affected area</li>
+                                <li>Optionally record audio describing your symptoms</li>
+                                <li>Click "Get Assessment" for AI analysis</li>
+                                <li>Review your assessment results</li>
+                            </ol>
+                        </div>
+                    """)
+                    
+                    # Image input
+                    image_input = gr.Image(
+                        type="filepath",
+                        label="Upload Image of Affected Area",
+                        elem_id="image-input"
+                    )
+                    
+                    # Audio input
+                    audio_input = gr.Audio(
+                        sources=["microphone"],
+                        type="filepath",
+                        label="Describe Your Symptoms (Optional)",
+                        elem_id="audio-input"
+                    )
+                    
+                    # Submit button
+                    submit_btn = gr.Button(
+                        "Get Assessment", 
+                        variant="primary",
+                        elem_id="submit-btn",
+                        size="lg"
+                    )
+                    
+                    gr.HTML("""
+                        <div class="disclaimer">
+                            <strong>Important Notice:</strong> This tool provides a preliminary assessment only 
+                            and is not a substitute for professional medical care. Always consult with a qualified 
+                            healthcare provider for proper diagnosis and treatment.
+                        </div>
+                    </div>
+                    """)
+                
+                # Right column - Output section
+                with gr.Column():
+                    gr.HTML("""
+                    <div class="output-container">
+                        <h2 class="step-header">Step 2: Review Your Assessment</h2>
+                    """)
+                    
+                    # Transcription output
+                    transcription_output = gr.Textbox(
+                        label="Your Described Symptoms",
+                        elem_id="transcription-output",
+                        lines=2
+                    )
+                    
+                    # Assessment output
+                    assessment_output = gr.Textbox(
+                        label="Professional Assessment",
+                        elem_id="assessment-output",
+                        lines=6
+                    )
+                    
+                    # Audio output
+                    audio_output = gr.Audio(
+                        label="Audio Assessment",
+                        type="filepath",
+                        elem_id="audio-output"
+                    )
+                    
+                    gr.HTML("""
+                    </div>
+                    """)
+            
+            # Footer
+            gr.HTML("""
+            <div class="container">
+                <div class="footer">
+                    <p>© 2025 MediScan - AI-Powered Healthcare Assessment Tool</p>
+                    <p>This application uses AI technologies from Groq and ElevenLabs</p>
+                </div>
+            </div>
+            """)
+            
+            # Set up event handlers
+            submit_btn.click(
+                fn=self.process_consultation,
+                inputs=[audio_input, image_input],
+                outputs=[transcription_output, assessment_output, audio_output],
+                api_name="process_consultation"
+            )
+            
+        return interface
 
 
 if __name__ == "__main__":
     try:
         app = MedicalConsultationApp()
         interface = app.create_interface()
-        interface.launch(debug=True)
+        interface.launch(debug=False)
     except ValueError as e:
         logger.critical(f"Application initialization failed: {e}")
     except Exception as e:
