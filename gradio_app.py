@@ -281,67 +281,202 @@ class MedicalAssistant:
             md_content = self._generate_markdown(report_data)
             html_content = markdown.markdown(md_content)
             
+            # Create assets directory if it doesn't exist
+            assets_dir = Path("assets")
+            assets_dir.mkdir(exist_ok=True)
+            
+            # Path to verification stamp image
+            stamp_path = assets_dir / "verification_stamp.png"
+            
             styled_html = f"""
             <!DOCTYPE html>
             <html>
                 <head>
                     <meta charset="UTF-8">
-                    <title>Medical Report</title>
+                    <title>Clinical Assessment Report</title>
                     <style>
                         @page {{
                             size: A4;
-                            margin: 2cm;
+                            margin: 1.5cm;
+                            @top-right {{
+                                content: "Page " counter(page) " of " counter(pages);
+                                font-size: 9pt;
+                                color: #555;
+                            }}
                         }}
                         body {{
-                            font-family: Arial, sans-serif;
-                            line-height: 1.6;
-                            color: #333;
+                            font-family: "Helvetica", "Arial", sans-serif;
+                            line-height: 1.5;
+                            color: #222;
+                            margin: 0;
+                            padding: 0;
+                            background-color: #fff;
+                        }}
+                        .header {{
+                            border-bottom: 2px solid #005a87;
+                            padding-bottom: 10px;
+                            margin-bottom: 20px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }}
+                        .logo {{
+                            text-align: right;
+                            font-weight: bold;
+                            color: #005a87;
+                            font-size: 14pt;
                         }}
                         h1 {{
-                            color: #2c3e50;
-                            border-bottom: 2px solid #3498db;
-                            padding-bottom: 0.5em;
+                            color: #005a87;
+                            margin: 0 0 5px 0;
+                            font-size: 20pt;
+                            font-weight: bold;
+                        }}
+                        .report-info {{
+                            background-color: #f8f8f8;
+                            border-left: 4px solid #005a87;
+                            padding: 10px 15px;
+                            margin-bottom: 20px;
+                        }}
+                        .report-meta {{
+                            display: flex;
+                            justify-content: space-between;
+                            font-size: 10pt;
+                            color: #444;
                         }}
                         h2 {{
-                            color: #3498db;
-                            margin-top: 1.5em;
+                            color: #005a87;
+                            font-size: 14pt;
+                            margin-top: 25px;
+                            margin-bottom: 10px;
+                            padding-bottom: 5px;
+                            border-bottom: 1px solid #ddd;
                         }}
                         ul {{
-                            margin-left: 1.5em;
-                            padding-left: 0;
+                            margin: 10px 0;
+                            padding-left: 20px;
                         }}
                         li {{
-                            margin-bottom: 0.5em;
+                            margin-bottom: 8px;
+                            line-height: 1.4;
                         }}
-                        .disclaimer {{
-                            color: #e74c3c;
-                            font-style: italic;
-                            margin-top: 2em;
-                            border-top: 1px solid #eee;
-                            padding-top: 1em;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    {html_content}
-                </body>
-            </html>
-            """
-            
-            with open(pdf_path, "wb") as pdf_file:
-                pisa_status = pisa.CreatePDF(
-                    styled_html,
-                    dest=pdf_file,
-                    encoding='UTF-8'
-                )
-            
-            if pisa_status.err:
-                raise RuntimeError("PDF generation failed")
+                        .section {{
+                        margin-bottom: 20px;
+                    }}
+                    .disclaimer {{
+                        margin-top: 30px;
+                        padding: 15px;
+                        border: 1px solid #eaeaea;
+                        border-left: 4px solid #c0392b;
+                        background-color: #fdf7f7;
+                        font-size: 9pt;
+                        color: #555;
+                    }}
+                    .verification {{
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-top: 40px;
+                        border-top: 1px solid #eaeaea;
+                        padding-top: 15px;
+                    }}
+                    .verification-info {{
+                        font-size: 9pt;
+                        color: #555;
+                    }}
+                    .verification-stamp {{
+                        width: 100px;
+                        height: 100px;
+                        opacity: 0.85;
+                    }}
+                    .caduceus {{
+                        font-size: 24pt;
+                        color: #005a87;
+                        margin-right: 10px;
+                    }}
+                    table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 15px 0;
+                    }}
+                    th {{
+                        background-color: #f0f7fb;
+                        color: #005a87;
+                        text-align: left;
+                        padding: 8px;
+                        border-bottom: 2px solid #ddd;
+                        font-weight: bold;
+                    }}
+                    td {{
+                        padding: 8px;
+                        border-bottom: 1px solid #eee;
+                    }}
+                    tr:nth-child(even) {{
+                        background-color: #f9f9f9;
+                    }}
+                    .patient-id {{
+                        font-family: monospace;
+                        background-color: #f0f7fb;
+                        padding: 3px 5px;
+                        border-radius: 3px;
+                        font-size: 9pt;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h1>Clinical Assessment Report</h1>
+                        <div>AI Medical Consultation System</div>
+                    </div>
+                    <div class="logo">
+                        <span class="caduceus">⚕</span> MedAI
+                    </div>
+                </div>
                 
-            return pdf_path
-        except Exception as e:
-            logger.error(f"PDF generation failed: {e}")
-            raise
+                <div class="report-info">
+                    <div class="report-meta">
+                        <div><strong>Report Date:</strong> {report_data['date']}</div>
+                        <div><strong>Report ID:</strong> <span class="patient-id">MED-{datetime.now().strftime('%Y%m%d')}-{hash(report_data['date']) % 10000:04d}</span></div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    {html_content}
+                </div>
+                
+                <div class="disclaimer">
+                    <strong>IMPORTANT DISCLAIMER:</strong> This report was generated by an AI medical assistant and is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+                </div>
+                
+                <div class="verification">
+                    <div class="verification-info">
+                        <p><strong>Verification Code:</strong> {hash(report_data['timestamp'])%100000:05d}-{hash(report_data['date'])%1000:03d}-AI</p>
+                        <p>Generated on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}</p>
+                        <p>This document is digitally generated and does not require a signature.</p>
+                    </div>
+                    <div>
+                        <img class="verification-stamp" src="{str(stamp_path)}" alt="Verification Stamp">
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        
+        with open(pdf_path, "wb") as pdf_file:
+            pisa_status = pisa.CreatePDF(
+                styled_html,
+                dest=pdf_file,
+                encoding='UTF-8'
+            )
+        
+        if pisa_status.err:
+            raise RuntimeError("PDF generation failed")
+            
+        return pdf_path
+    except Exception as e:
+        logger.error(f"PDF generation failed: {e}")
+        raise
 
 def create_gradio_interface():
     """Create and configure Gradio interface"""
