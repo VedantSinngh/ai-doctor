@@ -10,7 +10,6 @@ from gtts import gTTS
 from pathlib import Path
 import json
 import markdown
-from xhtml2pdf import pisa
 
 # Load environment variables
 load_dotenv()
@@ -171,9 +170,6 @@ class MedicalAssistant:
             if format == "markdown":
                 content = self._generate_markdown(report_data)
                 return {"content": content, "file_path": None}
-            elif format == "pdf":
-                file_path = self._generate_pdf(report_data)
-                return {"content": None, "file_path": file_path}
             elif format == "json":
                 content = json.dumps(report_data, indent=2)
                 return {"content": content, "file_path": None}
@@ -186,8 +182,7 @@ class MedicalAssistant:
     def _generate_markdown(self, report_data: Dict) -> str:
         md = [
             f"# {report_data['title']}",
-            f"**Date:** {report_data['date']}",
-            ""
+            f"**Date:** {report_data['date']}",""
         ]
         if report_data['symptoms']:
             md.append("## Reported Symptoms")
@@ -201,26 +196,6 @@ class MedicalAssistant:
         md.append("## Disclaimer")
         md.append(report_data["disclaimer"])
         return "\n".join(md)
-
-    def _generate_pdf(self, report_data: Dict) -> str:
-        pdf_path = str(TEMP_DIR / "medical_report.pdf")
-        try:
-            md_content = self._generate_markdown(report_data)
-            html_content = markdown.markdown(md_content)
-            styled_html = f"""
-            <html>
-            <body>
-            <h1>{report_data['title']}</h1>
-            <p><b>Date:</b> {report_data['date']}</p>
-            {html_content}
-            </body></html>
-            """
-            with open(pdf_path, "wb") as f:
-                pisa.CreatePDF(styled_html, dest=f)
-            return pdf_path
-        except Exception as e:
-            logger.error(f"PDF generation failed: {e}")
-            raise
 
 
 def create_gradio_interface():
@@ -239,10 +214,9 @@ def create_gradio_interface():
 
             with gr.Column(scale=1):
                 with gr.Tab("Report"):
-                    report_format = gr.Radio(["markdown", "pdf", "json"], label="Report Format", value="markdown")
+                    report_format = gr.Radio(["markdown", "json"], label="Report Format", value="markdown")
                     generate_btn = gr.Button("Generate Report")
                     report_output = gr.Markdown(label="Report Preview")
-                    report_download = gr.File(label="Download Report", visible=False)
 
                 with gr.Tab("Audio Response"):
                     tts_btn = gr.Button("🔊 Generate Voice Response")
@@ -257,9 +231,7 @@ def create_gradio_interface():
 
         def generate_report(format: str):
             report = assistant.generate_report(format)
-            if format == "pdf":
-                return None, report["file_path"], gr.File(visible=True)
-            return report["content"], None, gr.File(visible=False)
+            return report["content"]
 
         def generate_tts_response(history: List):
             if not history:
@@ -269,7 +241,7 @@ def create_gradio_interface():
 
         msg.submit(respond, [msg, image_input, chatbot], [chatbot, msg])
         submit_btn.click(respond, [msg, image_input, chatbot], [chatbot, msg])
-        generate_btn.click(generate_report, inputs=report_format, outputs=[report_output, report_download, report_download])
+        generate_btn.click(generate_report, inputs=report_format, outputs=report_output)
         tts_btn.click(generate_tts_response, inputs=chatbot, outputs=tts_output)
 
     return app
